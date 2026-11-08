@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mi Panel Cripto</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+/* Layout: una columna de trabajo — cabecera con precio, gráfico con líneas de decisión, y debajo dos paneles (posición · niveles). */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --line: #dde2ea;
+  --fg: #141b26;
+  --muted: #5d6878;
+  --accent: #2f5bd3;
+  --buy: #7a8496;
+  --even: #c27c0e;
+  --sell: #12855a;
+  --rebuy: #2f6fe0;
+  --stop: #c9373a;
+  --up: #12855a;
+  --down: #c9373a;
+  --grid: #eceff4;
+  --f-display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --f-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e131b; --surface: #151c27; --line: #263142; --fg: #e7ecf3; --muted: #95a1b3;
+    --accent: #7ea2ff; --buy: #8e99ab; --even: #f0b13e; --sell: #3fcf91; --rebuy: #6ea4ff;
+    --stop: #ff6b6b; --up: #3fcf91; --down: #ff6b6b; --grid: #1c2533; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e131b; --surface: #151c27; --line: #263142; --fg: #e7ecf3; --muted: #95a1b3;
+  --accent: #7ea2ff; --buy: #8e99ab; --even: #f0b13e; --sell: #3fcf91; --rebuy: #6ea4ff;
+  --stop: #ff6b6b; --up: #3fcf91; --down: #ff6b6b; --grid: #1c2533; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 18px; }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
+.brand small { display: block; font-weight: 500; font-size: 0.78rem; color: var(--muted); letter-spacing: 0; }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button {
+  font: 600 0.88rem var(--f-body); color: var(--muted); background: none; border: 0; border-radius: 7px;
+  padding: 7px 14px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.seg button:focus-visible, .btn:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.quote { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.quote .pair { font-family: var(--f-display); font-weight: 700; font-size: 1rem; color: var(--muted); }
+.quote .price { font-family: var(--f-data); font-weight: 600; font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -0.02em; line-height: 1.1; }
+.chg { font-family: var(--f-data); font-weight: 600; }
+.chg.up { color: var(--up); } .chg.down { color: var(--down); }
+.meta { color: var(--muted); font-size: 0.82rem; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.good { color: var(--sell); } .pill.bad { color: var(--stop); } .pill.warn { color: var(--even); } .pill.info { color: var(--rebuy); } .pill.neutral { color: var(--muted); }
+
+.chartbox { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+.chartbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+#chart { height: 400px; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 18px; height: 0; border-top: 2px solid; display: inline-block; }
+.legend i.dash { border-top-style: dashed; }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; align-content: start; }
+.panel h2 { font-family: var(--f-display); font-size: 1rem; font-weight: 700; margin: 0; }
+.panel h2 small { display: block; font-weight: 500; font-size: 0.8rem; color: var(--muted); }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+label.f { display: grid; gap: 4px; font-size: 0.78rem; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
+label.f input {
+  font: 500 0.95rem var(--f-data); color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0;
+}
+.rows { display: grid; gap: 0; }
+.row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--grid); font-size: 0.9rem; }
+.row:last-child { border-bottom: 0; }
+.row .k { color: var(--muted); }
+.row.total { font-weight: 700; }
+.row.big .v { font-size: 1.1rem; }
+.v.up { color: var(--up); } .v.down { color: var(--down); }
+.lvl { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--grid); }
+.lvl:last-of-type { border-bottom: 0; }
+.lvl .sw { width: 12px; height: 12px; border-radius: 3px; }
+.lvl .name { font-weight: 700; font-size: 0.9rem; }
+.lvl .why { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+.lvl input { width: 7.5em; font: 500 0.92rem var(--f-data); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; text-align: right; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: 700 0.88rem var(--f-body); border-radius: 9px; padding: 9px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.note { font-size: 0.82rem; color: var(--muted); margin: 0; }
+.callout { background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 12px; font-size: 0.88rem; }
+.empty { padding: 40px 12px; text-align: center; color: var(--muted); }
+footer { color: var(--muted); font-size: 0.78rem; max-width: 70ch; }
+@media (max-width: 520px) { #chart { height: 320px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Mi Panel Cripto<small>Precios de Bitget en directo · tu posición con comisiones</small></div>
+    <div class="seg" role="group" aria-label="Moneda">
+      <button type="button" data-sym="XRPUSDT" aria-pressed="true">XRP</button>
+      <button type="button" data-sym="BTCUSDT" aria-pressed="false">Bitcoin</button>
+    </div>
+  </header>
+
+  <section class="quote" aria-live="polite">
+    <span class="pair" id="pair">XRP / USDT</span>
+    <span class="price num" id="price">—</span>
+    <span class="chg" id="chg"></span>
+    <span class="meta" id="updated">Cargando datos…</span>
+  </section>
+  <div class="pills" id="pills"></div>
+
+  <section class="chartbox">
+    <div class="chartbar">
+      <div class="seg" role="group" aria-label="Periodo de las velas">
+        <button type="button" data-tf="d1" aria-pressed="true">Diario</button>
+        <button type="button" data-tf="h4" aria-pressed="false">4 horas</button>
+      </div>
+      <div class="legend">
+        <span><i class="dash" style="border-color:var(--buy)"></i>Tu compra</span>
+        <span><i style="border-color:var(--even)"></i>Equilibrio (con comisiones)</span>
+        <span><i style="border-color:var(--sell)"></i>Vender</span>
+        <span><i style="border-color:var(--rebuy)"></i>Recomprar</span>
+        <span><i class="dash" style="border-color:var(--stop)"></i>Stop</span>
+      </div>
+    </div>
+    <div id="chart"><div class="empty" id="chartEmpty">Cargando precios de Bitget…</div></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Mi posición<small id="posSub">Cantidad, precio de compra y comisión de Bitget</small></h2>
+      <div class="fields">
+        <label class="f">Cantidad<input id="qty" type="number" step="any" min="0" inputmode="decimal"></label>
+        <label class="f">Precio de compra<input id="entry" type="number" step="any" min="0" inputmode="decimal"></label>
+        <label class="f">Comisión %<input id="fee" type="number" step="any" min="0" inputmode="decimal"></label>
+      </div>
+      <div class="rows" id="posRows"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Cuándo vender o recomprar<small>Deja una casilla vacía para usar el valor sugerido</small></h2>
+      <div>
+        <div class="lvl"><span class="sw" style="background:var(--sell)"></span><span class="name">Vender en<span class="why" id="whySell"></span></span><input id="lvSell" type="number" step="any" inputmode="decimal" aria-label="Precio de venta"></div>
+        <div class="lvl"><span class="sw" style="background:var(--rebuy)"></span><span class="name">Recomprar en<span class="why" id="whyRebuy"></span></span><input id="lvRebuy" type="number" step="any" inputmode="decimal" aria-label="Precio de recompra"></div>
+        <div class="lvl"><span class="sw" style="background:var(--stop)"></span><span class="name">Stop de protección<span class="why" id="whyStop"></span></span><input id="lvStop" type="number" step="any" inputmode="decimal" aria-label="Precio de stop"></div>
+      </div>
+      <div class="callout" id="swing"></div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="save">Guardar</button>
+        <button type="button" class="btn" id="reset">Usar sugeridos</button>
+        <span class="note" id="saveMsg" role="status"></span>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Tu posición se guarda solo en este navegador; no se envía a ningún sitio. Esto es una herramienta de cálculo con datos públicos, no asesoramiento financiero. Los niveles sugeridos salen de los máximos y mínimos de los últimos 30 días y de la volatilidad media (ATR); no predicen el precio. Una orden stop puede ejecutarse peor que su precio en un mercado rápido.
+  </footer>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+(() => {
+  const NAMES = { XRPUSDT: ["XRP", "XRP / USDT", 4], BTCUSDT: ["BTC", "Bitcoin / USDT", 2] };
+  const DEF_FEE = 0.1;
+  const state = { sym: "XRPUSDT", tf: "d1", market: {}, pos: {} };
+  try { state.pos = JSON.parse(localStorage.getItem("panel.pos") || "{}") || {}; } catch (e) {}
+  try { const s = localStorage.getItem("panel.sym"); if (NAMES[s]) state.sym = s; } catch (e) {}
+  try { const t = localStorage.getItem("panel.tf"); if (t === "d1" || t === "h4") state.tf = t; } catch (e) {}
+
+  const $ = (id) => document.getElementById(id);
+  const dec = () => NAMES[state.sym][2];
+  const fmt = (n, d = dec()) => Number.isFinite(n) ? n.toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—";
+  const usd = (n) => Number.isFinite(n) ? fmt(n, 2) + " USDT" : "—";
+  const pct = (n) => Number.isFinite(n) ? (n >= 0 ? "+" : "") + n.toLocaleString("es-ES", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %" : "—";
+  const signed = (n) => Number.isFinite(n) ? (n >= 0 ? "+" : "−") + fmt(Math.abs(n), 2) + " USDT" : "—";
+  const cls = (n) => n >= 0 ? "up" : "down";
+  const numOrNull = (v) => { const n = parseFloat(String(v).replace(",", ".")); return Number.isFinite(n) && n > 0 ? n : null; };
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  // ---------- análisis técnico sencillo ----------
+  function suggestions(m) {
+    if (!m || !m.d1 || m.d1.length < 31) return null;
+    const d = m.d1, last30 = d.slice(-30);
+    const hi30 = Math.max(...last30.map(r => r[2]));
+    const lo30 = Math.min(...last30.map(r => r[3]));
+    let tr = 0;
+    for (let i = d.length - 14; i < d.length; i++) {
+      const [, , h, l] = d[i], pc = d[i - 1][4];
+      tr += Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+    }
+    const atr = tr / 14;
+    const round = (x) => +x.toFixed(dec());
+    return { sell: round(hi30), rebuy: round(lo30), stop: round(lo30 - atr), atr, hi30, lo30 };
+  }
+
+  function calc() {
+    const m = state.market[state.sym];
+    const p = state.pos[state.sym] || {};
+    const price = m ? m.price : NaN;
+    const q = numOrNull($("qty").value) || 0;
+    const e = numOrNull($("entry").value);
+    const feeRaw = parseFloat(String($("fee").value).replace(",", "."));
+    const f = (Number.isFinite(feeRaw) && feeRaw >= 0 ? feeRaw : DEF_FEE) / 100;
+    const sug = suggestions(m);
+    const lv = {
+      sell: numOrNull($("lvSell").value) ?? sug?.sell ?? null,
+      rebuy: numOrNull($("lvRebuy").value) ?? sug?.rebuy ?? null,
+      stop: numOrNull($("lvStop").value) ?? sug?.stop ?? null,
+    };
+    const has = q > 0 && e;
+    const invested = has ? q * e : NaN;
+    const buyFee = invested * f;
+    const cost = invested + buyFee;
+    const gross = q * price;
+    const sellFee = gross * f;
+    const net = gross - sellFee;
+    const pnl = net - cost;
+    const be = has ? e * (1 + f) / (1 - f) : null;
+    return { m, p, price, q, e, f, has, invested, buyFee, cost, gross, sellFee, net, pnl, be, lv, sug };
+  }
+
+  // ---------- gráfico ----------
+  let chart = null, series = null, lines = [];
+  function makeChart() {
+    if (chart || !window.LightweightCharts) return;
+    $("chartEmpty")?.remove();
+    chart = LightweightCharts.createChart($("chart"), {
+      autoSize: true,
+      layout: { background: { type: "solid", color: "transparent" }, textColor: css("--muted"), fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
+      grid: { vertLines: { color: css("--grid") }, horzLines: { color: css("--grid") } },
+      rightPriceScale: { borderColor: css("--line") },
+      timeScale: { borderColor: css("--line"), timeVisible: true },
+      crosshair: { mode: 0 },
+      localization: { locale: "es-ES" },
+    });
+    series = chart.addCandlestickSeries({
+      upColor: css("--up"), downColor: css("--down"), borderVisible: false,
+      wickUpColor: css("--up"), wickDownColor: css("--down"),
+    });
+  }
+  function recolor() {
+    if (!chart) return;
+    chart.applyOptions({
+      layout: { textColor: css("--muted") },
+      grid: { vertLines: { color: css("--grid") }, horzLines: { color: css("--grid") } },
+      rightPriceScale: { borderColor: css("--line") }, timeScale: { borderColor: css("--line") },
+    });
+    series.applyOptions({ upColor: css("--up"), downColor: css("--down"), wickUpColor: css("--up"), wickDownColor: css("--down") });
+    drawLines(calc());
+  }
+  let lastKey = "";
+  function drawCandles(m) {
+    makeChart();
+    if (!series || !m) return;
+    const key = state.sym + state.tf + m.updatedAt;
+    if (key === lastKey) return;
+    lastKey = key;
+    const rows = m[state.tf] || [];
+    series.applyOptions({ priceFormat: { type: "price", precision: dec(), minMove: Math.pow(10, -dec()) } });
+    series.setData(rows.map(r => ({ time: r[0], open: r[1], high: r[2], low: r[3], close: r[4] })));
+    chart.timeScale().fitContent();
+  }
+  function drawLines(c) {
+    if (!series) return;
+    lines.forEach(l => series.removePriceLine(l)); lines = [];
+    const add = (price, color, title, style) => {
+      if (!Number.isFinite(price) || price <= 0) return;
+      lines.push(series.createPriceLine({ price, color, lineWidth: 2, lineStyle: style, axisLabelVisible: true, title }));
+    };
+    const S = LightweightCharts.LineStyle;
+    if (c.has) {
+      add(c.e, css("--buy"), "Compra", S.Dashed);
+      add(c.be, css("--even"), "Equilibrio", S.Solid);
+    }
+    add(c.lv.sell, css("--sell"), "Vender", S.Solid);
+    add(c.lv.rebuy, css("--rebuy"), "Recomprar", S.Solid);
+    add(c.lv.stop, css("--stop"), "Stop", S.Dashed);
+  }
+
+  // ---------- pantalla ----------
+  function render() {
+    const [ticker, pairName] = NAMES[state.sym];
+    document.querySelectorAll("[data-sym]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.sym === state.sym)));
+    document.querySelectorAll("[data-tf]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tf === state.tf)));
+    $("pair").textContent = pairName;
+    const c = calc();
+    const m = c.m;
+    if (m) {
+      $("price").textContent = fmt(m.price);
+      const ch = m.change24h * 100;
+      $("chg").textContent = pct(ch) + " en 24 h";
+      $("chg").className = "chg " + cls(ch);
+      const d = new Date(m.updatedAt * 1000);
+      $("updated").textContent = "Actualizado " + d.toLocaleString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + " · rango 24 h " + fmt(m.low24h) + " – " + fmt(m.high24h);
+      drawCandles(m);
+    } else {
+      $("price").textContent = "—"; $("chg").textContent = "";
+    }
+    drawLines(c);
+
+    // posición
+    $("posSub").textContent = c.has ? `${fmt(c.q, 4)} ${ticker} comprados a ${fmt(c.e)}` : `Escribe tu cantidad y precio de compra de ${ticker}`;
+    const R = [];
+    if (c.has) {
+      R.push(["Inversión (cantidad × precio)", usd(c.invested)]);
+      R.push([`Comisión de compra (${fmt(c.f * 100, 2)} %)`, usd(c.buyFee)]);
+      R.push(["Coste total con comisión", usd(c.cost), "total"]);
+      R.push(["Valor ahora", m ? usd(c.gross) : "—"]);
+      R.push(["Comisión si vendes ahora", m ? usd(c.sellFee) : "—"]);
+      R.push(["Resultado neto si vendes ahora", m ? `<span class="v ${cls(c.pnl)}">${signed(c.pnl)} (${pct(c.pnl / c.cost * 100)})</span>` : "—", "total big"]);
+      R.push(["Precio para no perder nada", `${fmt(c.be)}${m ? ` <span class="meta">(${pct((c.be / m.price - 1) * 100)})</span>` : ""}`]);
+    }
+    $("posRows").innerHTML = R.length
+      ? R.map(([k, v, x]) => `<div class="row ${x || ""}"><span class="k">${k}</span><span class="v num">${v}</span></div>`).join("")
+      : `<p class="note">Sin posición en ${ticker}. Puedes seguir el gráfico y los niveles igualmente.</p>`;
+
+    // niveles sugeridos
+    const s = c.sug;
+    $("whySell").textContent = s ? `Sugerido ${fmt(s.sell)}: máximo de 30 días` : "";
+    $("whyRebuy").textContent = s ? `Sugerido ${fmt(s.rebuy)}: mínimo de 30 días` : "";
+    $("whyStop").textContent = s ? `Sugerido ${fmt(s.stop)}: mínimo de 30 días menos 1 ATR` : "";
+    $("lvSell").placeholder = s ? fmt(s.sell) : ""; $("lvRebuy").placeholder = s ? fmt(s.rebuy) : ""; $("lvStop").placeholder = s ? fmt(s.stop) : "";
+
+    // vender arriba y recomprar abajo
+    const { sell, rebuy } = c.lv;
+    let sw = "";
+    if (c.has && sell && rebuy && sell > rebuy) {
+      const proceeds = c.q * sell * (1 - c.f);
+      const res = proceeds - c.cost;
+      const newQty = proceeds * (1 - c.f) / rebuy;
+      sw = `Si vendes tus <b class="num">${fmt(c.q, 4)}</b> ${ticker} a <b class="num">${fmt(sell)}</b> recibes <b class="num">${usd(proceeds)}</b> <span class="v ${cls(res)}">(${signed(res)} frente a tu coste)</span>. Si después recompras a <b class="num">${fmt(rebuy)}</b>, tendrías <b class="num">${fmt(newQty, 4)}</b> ${ticker}, <span class="v ${cls(newQty - c.q)}">${newQty >= c.q ? "+" : "−"}${fmt(Math.abs(newQty - c.q), 4)}</span> respecto a ahora.`;
+    } else if (sell && rebuy && sell <= rebuy) {
+      sw = "El precio de venta tiene que ser mayor que el de recompra.";
+    } else {
+      sw = `Con una posición y los dos niveles, aquí verás cuántos ${ticker} ganarías vendiendo arriba y recomprando abajo.`;
+    }
+    if (c.has && c.lv.stop) {
+      const stopRes = c.q * c.lv.stop * (1 - c.f) - c.cost;
+      sw += `<br><span class="meta">Si salta el stop en ${fmt(c.lv.stop)}: ${signed(stopRes)} en total.</span>`;
+    }
+    $("swing").innerHTML = sw;
+
+    // estado
+    const P = [];
+    if (m) {
+      if (c.has) P.push(m.price >= c.be ? ["Ganando: por encima del equilibrio", "good"] : [`En pérdidas: faltan ${pct((c.be / m.price - 1) * 100).replace("+", "")} para recuperar`, "bad"]);
+      if (c.lv.stop && m.price <= c.lv.stop) P.push(["Por debajo del stop", "bad"]);
+      else if (c.lv.rebuy && m.price <= c.lv.rebuy * 1.01) P.push(["En zona de recompra", "info"]);
+      if (c.lv.sell && m.price >= c.lv.sell * 0.99) P.push(["En zona de venta", "good"]);
+      if (!P.length || P.length === 1 && c.has) {
+        if (c.lv.sell && c.lv.rebuy && m.price < c.lv.sell * 0.99 && m.price > c.lv.rebuy * 1.01)
+          P.push([`Entre niveles: ${pct((c.lv.sell / m.price - 1) * 100)} hasta vender, ${pct((c.lv.rebuy / m.price - 1) * 100)} hasta recomprar`, "neutral"]);
+      }
+    }
+    $("pills").innerHTML = P.map(([t, k]) => `<span class="pill ${k}">${t}</span>`).join("");
+  }
+
+  function fillInputs() {
+    const p = state.pos[state.sym] || {};
+    const set = (id, v) => { if (document.activeElement !== $(id)) $(id).value = v ?? ""; };
+    set("qty", p.qty); set("entry", p.entry); set("fee", p.feePct ?? DEF_FEE);
+    set("lvSell", p.sell); set("lvRebuy", p.rebuy); set("lvStop", p.stop);
+  }
+
+  // ---------- eventos ----------
+  document.querySelectorAll("[data-sym]").forEach(b => b.addEventListener("click", () => {
+    state.sym = b.dataset.sym; lastKey = "";
+    try { localStorage.setItem("panel.sym", state.sym); } catch (e) {}
+    $("saveMsg").textContent = ""; fillInputs(); render();
+  }));
+  document.querySelectorAll("[data-tf]").forEach(b => b.addEventListener("click", () => {
+    state.tf = b.dataset.tf; lastKey = "";
+    try { localStorage.setItem("panel.tf", state.tf); } catch (e) {}
+    render();
+  }));
+  ["qty", "entry", "fee", "lvSell", "lvRebuy", "lvStop"].forEach(id => $(id).addEventListener("input", () => { $("saveMsg").textContent = "Cambios sin guardar"; render(); }));
+  $("reset").addEventListener("click", () => { ["lvSell", "lvRebuy", "lvStop"].forEach(id => $(id).value = ""); $("saveMsg").textContent = "Cambios sin guardar"; render(); });
+  $("save").addEventListener("click", async () => {
+    const body = {
+      qty: numOrNull($("qty").value), entry: numOrNull($("entry").value),
+      feePct: (() => { const n = parseFloat(String($("fee").value).replace(",", ".")); return Number.isFinite(n) && n >= 0 ? n : DEF_FEE; })(),
+      sell: numOrNull($("lvSell").value), rebuy: numOrNull($("lvRebuy").value), stop: numOrNull($("lvStop").value),
+      updatedAt: Date.now(),
+    };
+    state.pos[state.sym] = body;
+    try { localStorage.setItem("panel.pos", JSON.stringify(state.pos)); $("saveMsg").textContent = "Guardado en este navegador"; }
+    catch (e) { $("saveMsg").textContent = "Este navegador no permite guardar; los cálculos siguen funcionando."; }
+  });
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener?.("change", recolor);
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  fillInputs(); render();
+
+  // ---------- datos en directo (API pública de Bitget) ----------
+  const API = "https://api.bitget.com/api/v2/spot/market";
+  async function getJSON(path) {
+    const r = await fetch(API + path, { cache: "no-store" });
+    const d = await r.json();
+    if (d.code !== "00000") throw new Error(d.msg || "Bitget");
+    return d.data;
+  }
+  async function loadSym(sym) {
+    const [t] = await getJSON(`/tickers?symbol=${sym}`);
+    const prev = state.market[sym];
+    const now = Math.floor(Date.now() / 1000);
+    let d1 = prev?.d1, h4 = prev?.h4;
+    if (!prev || now - prev.candlesAt > 300) {
+      const conv = rows => rows.map(r => [Math.floor(+r[0] / 1000), +r[1], +r[2], +r[3], +r[4]]).sort((a, b) => a[0] - b[0]);
+      [d1, h4] = await Promise.all([
+        getJSON(`/candles?symbol=${sym}&granularity=1day&limit=365`).then(conv),
+        getJSON(`/candles?symbol=${sym}&granularity=4h&limit=180`).then(conv),
+      ]);
+    }
+    const price = +t.lastPr;
+    // la última vela sigue el precio actual
+    for (const rows of [d1, h4]) {
+      const last = rows && rows[rows.length - 1];
+      if (last) { last[4] = price; last[2] = Math.max(last[2], price); last[3] = Math.min(last[3], price); }
+    }
+    state.market[sym] = {
+      symbol: sym, price, high24h: +t.high24h, low24h: +t.low24h, change24h: +t.change24h,
+      updatedAt: now, candlesAt: (!prev || now - prev.candlesAt > 300) ? now : prev.candlesAt, d1, h4,
+    };
+  }
+  async function refresh() {
+    try {
+      await Promise.all(Object.keys(NAMES).map(loadSym));
+      lastKey = ""; render();
+    } catch (e) {
+      $("updated").textContent = "No se pudo conectar con Bitget. Se reintentará en un minuto.";
+    }
+  }
+  refresh();
+  setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+})();
+</script>
+
+</body>
+</html>

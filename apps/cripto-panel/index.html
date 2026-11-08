@@ -359,7 +359,7 @@ footer { color: var(--muted); font-size: 0.78rem; max-width: 70ch; }
     // estado
     const P = [];
     if (m) {
-      if (c.has) P.push(m.price >= c.be ? ["Ganando: por encima del equilibrio", "good"] : [`En pérdidas: faltan ${pct((c.be / m.price - 1) * 100)} para recuperar`, "bad"]);
+      if (c.has) P.push(m.price >= c.be ? ["Ganando: por encima del equilibrio", "good"] : [`En pérdidas: faltan ${pct((c.be / m.price - 1) * 100).replace("+", "")} para recuperar`, "bad"]);
       if (c.lv.stop && m.price <= c.lv.stop) P.push(["Por debajo del stop", "bad"]);
       else if (c.lv.rebuy && m.price <= c.lv.rebuy * 1.01) P.push(["En zona de recompra", "info"]);
       if (c.lv.sell && m.price >= c.lv.sell * 0.99) P.push(["En zona de venta", "good"]);
