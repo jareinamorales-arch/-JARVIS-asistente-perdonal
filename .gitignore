@@ -1,2 +1,5 @@
 trader/
 __pycache__/
+
+# Copias de consulta con datos internos (no se suben al repositorio)
+entregables/
